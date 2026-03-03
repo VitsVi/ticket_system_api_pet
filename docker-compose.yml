@@ -4,20 +4,31 @@ services:
     container_name: ticket_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: ticket_db
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: always
+      - db_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7
     container_name: ticket_redis
     ports:
       - "6379:6379"
-    restart: always
+
+  app:
+    build: .
+    container_name: ticket_app
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/ticket_db"
+      REDIS_URL: "redis://redis:6379/0"
+    ports:
+      - "8000:8000"
+    command: python -m app.main
 
 volumes:
-  pgdata:
+  db_data:
