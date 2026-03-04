@@ -6,9 +6,6 @@ from sqlalchemy import engine_from_config, pool
 from sqlalchemy import create_engine  # sync engine for Alembic
 from alembic import context
 
-# путь к приложению
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 # импорт Base из моделей
 from app.db import Base
 # импорт всех моделей, чтобы Base.metadata видел таблицы
@@ -16,6 +13,9 @@ from app.models import Client, Operator, Ticket, Message
 # импорт настроек
 from app.config import settings
 
+
+# путь к приложению
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -27,8 +27,7 @@ fileConfig(config.config_file_name)
 # Используем sync engine только для autogenerate
 # ----------------------------
 # DATABASE_URL с asyncpg нужно заменить на psycopg2
-sync_database_url = settings.DATABASE_URL.replace("asyncpg", "psycopg2")
-engine = create_engine(sync_database_url)
+engine = create_engine(settings.DATABASE_URL_SYNC)
 
 target_metadata = Base.metadata
 
@@ -37,7 +36,7 @@ target_metadata = Base.metadata
 # ----------------------------
 def run_migrations_offline():
     """Run migrations in 'offline' mode."""
-    url = sync_database_url
+    url = settings.DATABASE_URL_SYNC
     context.configure(
         url=url,
         target_metadata=target_metadata,

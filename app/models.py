@@ -2,6 +2,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey, DateTime, Text, Enum as SQLEnum, func
 from enum import Enum
 from datetime import datetime
+from app.db import Base
 
 
 class TimestampMixin:
@@ -33,9 +34,6 @@ class TicketPriority(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
 
-
-class Base(DeclarativeBase):
-    pass
 
 
 class Client(Base, TimestampMixin):

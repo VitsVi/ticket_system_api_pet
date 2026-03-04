@@ -1,7 +1,11 @@
 from aiohttp import web
+from pydantic import ValidationError
 from app.db import async_session
 from app.service import TicketService, ClientService, OperatorService, MessageService
 from app.models import Ticket, Client, Operator, Message
+from app.schemas import TicketCreateSchema, ClientCreateSchema, OperatorCreateSchema, MessageCreateSchema
+from app.utils import validate_request
+
 
 routes = web.RouteTableDef()
 
@@ -15,7 +19,8 @@ async def list_tickets(request):
 
 @routes.post("/tickets")
 async def create_ticket(request):
-    data = await request.json()
+    data = await validate_request(request, TicketCreateSchema)
+
     async with async_session() as session:
         service = TicketService(session)
         ticket = Ticket(subject=data["subject"], client_id=data.get("client_id"))
@@ -25,7 +30,8 @@ async def create_ticket(request):
 # ===== CLIENTS =====
 @routes.post("/clients")
 async def create_client(request):
-    data = await request.json()
+    data = await validate_request(request, ClientCreateSchema)
+
     async with async_session() as session:
         service = ClientService(session)
         client = Client(name=data["name"], email=data["email"])
@@ -42,7 +48,8 @@ async def list_clients(request):
 # ===== OPERATORS =====
 @routes.post("/operators")
 async def create_operator(request):
-    data = await request.json()
+    data = await validate_request(request, OperatorCreateSchema)
+
     async with async_session() as session:
         service = OperatorService(session)
         operator = Operator(name=data["name"])
@@ -52,7 +59,8 @@ async def create_operator(request):
 # ===== MESSAGES =====
 @routes.post("/messages")
 async def create_message(request):
-    data = await request.json()
+    data = await validate_request(request, MessageCreateSchema)
+
     async with async_session() as session:
         service = MessageService(session)
         message = Message(content=data["content"], ticket_id=data["ticket_id"], sender_type=data["sender_type"])
