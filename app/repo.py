@@ -70,6 +70,7 @@ class TicketRepo(BaseRepo):
 
 
 ######################### ClientRepo #################
+class ClientRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Client)
 
