@@ -15,7 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN dos2unix entrypoint.sh && chmod +x entrypoint.sh
 
-# Если не нужен dos2unix после этого, можно удалить его:
 RUN apt-get remove -y dos2unix && apt-get autoremove -y
 
 ENTRYPOINT ["/app/entrypoint.sh"]
