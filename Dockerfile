@@ -13,8 +13,3 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 RUN chmod +x entrypoint.sh
-# # CMD запускается через docker-compose
-# RUN chmod +x /app/entrypoint.sh
-
-# # Запуск по умолчанию через entrypoint
-# ENTRYPOINT ["entrypoint.sh"]

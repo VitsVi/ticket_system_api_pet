@@ -1,17 +1,30 @@
-# app/service.py
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Ticket, TicketStatus, Client, Operator, Message
-from app.repo import TicketRepo, ClientRepo, OperatorRepo, MessageRepo
-from app.cache import update_ticket_count
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-# ===== TICKET SERVICE =====
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.cache import update_ticket_count
+from app.models import Client, Message, Operator, Ticket, TicketStatus
+from app.repo import ClientRepo, MessageRepo, OperatorRepo, TicketRepo
+
+
+##################### TICKET SERVICE ################
 class TicketService:
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.repo = TicketRepo(session)
 
     async def create_ticket(self, ticket: Ticket):
+        result = await self.session.execute(
+            select(Client).where(Client.id == ticket.client_id)
+        )
+        client = result.scalar_one_or_none()
+
+        if not client:
+            raise ValueError("Client not found")
+
         operator = await self.repo.get_free_operator()
+
         if operator:
             ticket.operator_id = operator.id
             ticket.status = TicketStatus.IN_PROGRESS
@@ -21,6 +34,25 @@ class TicketService:
         ticket = await self.repo.add(ticket)
         await update_ticket_count(ticket.status.value, 1)
         return ticket
+
+    async def update_ticket(self, ticket: Ticket, data: dict):
+        """Обновление тикета"""
+        old_status = ticket.status
+        for field, value in data.items():
+            if value is not None:
+                setattr(ticket, field, value)
+
+        if 'status' in data and data['status'] and old_status != data['status']:
+            await update_ticket_count(old_status.value, -1)
+            await update_ticket_count(data['status'].value, 1)
+
+        ticket = await self.repo.update(ticket)
+        return ticket
+
+    async def delete_ticket(self, ticket: Ticket):
+        await self.repo.delete(ticket)
+        if ticket.status:
+            await update_ticket_count(ticket.status.value, -1)
 
     async def get_ticket(self, ticket_id: int):
         return await self.repo.get_by_id(ticket_id)
@@ -44,19 +76,27 @@ class TicketService:
         await self.repo.add(ticket)
         await update_ticket_count(old_status.value, -1)
         await update_ticket_count(new_status.value, 1)
+        if new_status == TicketStatus.CLOSED and ticket.operator_id:
+            next_ticket = await self.repo.get_next_ticket_for_operator()
+            if next_ticket:
+                next_ticket.operator_id = ticket.operator_id
+                next_ticket.status = TicketStatus.IN_PROGRESS
+                await self.repo.update(next_ticket)
+
         return ticket
 
     async def close_waiting_tickets(self):
         tickets = await self.repo.list()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         for ticket in tickets:
             if ticket.status == TicketStatus.WAITING and ticket.updated_at < now - timedelta(hours=24):
                 await self.update_status(ticket, TicketStatus.CLOSED)
 
 
-# ===== CLIENT SERVICE =====
+###################### CLIENT SERVICE #######################
 class ClientService:
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.repo = ClientRepo(session)
 
     async def create_client(self, client: Client):
@@ -68,10 +108,20 @@ class ClientService:
     async def get_client(self, client_id: int):
         return await self.repo.get_by_id(client_id)
 
+    async def update_client(self, client: Client, data: dict):
+        for field, value in data.items():
+            if value is not None:
+                setattr(client, field, value)
+        return await self.repo.update(client)
 
-# ===== OPERATOR SERVICE =====
+    async def delete_client(self, client: Client):
+        await self.repo.delete(client)
+
+
+############################ OPERATOR SERVICE #########################
 class OperatorService:
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.repo = OperatorRepo(session)
 
     async def create_operator(self, operator: Operator):
@@ -83,10 +133,20 @@ class OperatorService:
     async def get_operator(self, operator_id: int):
         return await self.repo.get_by_id(operator_id)
 
+    async def update_operator(self, operator: Operator, data: dict):
+        for field, value in data.items():
+            if value is not None:
+                setattr(operator, field, value)
+        return await self.repo.update(operator)
 
-# ===== MESSAGE SERVICE =====
+    async def delete_operator(self, operator: Operator):
+        await self.repo.delete(operator)
+
+
+############################ MESSAGE SERVICE ##############################
 class MessageService:
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.repo = MessageRepo(session)
 
     async def add_message(self, message: Message):
@@ -94,3 +154,10 @@ class MessageService:
 
     async def list_messages(self, ticket_id: int, offset=0, limit=50):
         return await self.repo.list_by_ticket(ticket_id, offset, limit)
+
+    async def update_message(self, message: Message, new_text: str):
+        message.text = new_text
+        return await self.repo.update(message)
+
+    async def delete_message(self, message: Message):
+        await self.repo.delete(message)

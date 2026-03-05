@@ -49,9 +49,7 @@ services:
       - "${APP_PORT}:8000"
     volumes:
       - ./migrations:/app/migrations
-    entrypoint: ["app/entrypoint.sh"]
-    # command: >
-    #   sh -c "alembic upgrade head && python -m app.main"
+    entrypoint: ["/app/entrypoint.sh"]
 
 volumes:
   db_data:

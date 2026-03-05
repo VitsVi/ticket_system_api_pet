@@ -1,10 +1,11 @@
-# app/repo.py
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func
-from app.models import Ticket, Client, Operator, Message, TicketStatus
 
-# ===== Базовый репозиторий =====
+from app.models import Client, Message, Operator, Ticket, TicketStatus, OperatorStatus
+
+
+###################### Базовый репозиторий ########################
 class BaseRepo:
     def __init__(self, session: AsyncSession, model):
         self.session = session
@@ -38,13 +39,12 @@ class BaseRepo:
         return result.scalars().all()
 
 
-# ===== TicketRepo =====
+#################### TicketRepo #########################
 class TicketRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Ticket)
 
     async def get_free_operator(self):
-        # выбираем онлайн оператора с минимальным кол-вом активных тикетов
         subq = (
             select(Ticket.operator_id, func.count(Ticket.id).label("ticket_count"))
             .where(Ticket.status == TicketStatus.IN_PROGRESS)
@@ -53,26 +53,35 @@ class TicketRepo(BaseRepo):
 
         result = await self.session.execute(
             select(Operator)
-            .where(Operator.status == "online")
+            .where(Operator.status == OperatorStatus.ONLINE)
             .outerjoin(subq, Operator.id == subq.c.operator_id)
             .order_by(subq.c.ticket_count.asc().nullsfirst())
         )
         return result.scalars().first()
 
+    async def get_next_ticket_for_operator(self):
+        result = await self.session.execute(
+            select(Ticket)
+            .where(Ticket.status == TicketStatus.NEW)
+            .order_by(Ticket.created_at.asc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
 
-# ===== ClientRepo =====
+
+######################### ClientRepo #########################
 class ClientRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Client)
 
 
-# ===== OperatorRepo =====
+######################### OperatorRepo #########################
 class OperatorRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Operator)
 
 
-# ===== MessageRepo =====
+######################### MessageRepo #########################
 class MessageRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Message)

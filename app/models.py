@@ -1,7 +1,11 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import String, ForeignKey, DateTime, Text, Enum as SQLEnum, func
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+
+from sqlalchemy import DateTime
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, String, Text, func, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db import Base
 
 
@@ -14,6 +18,7 @@ class TimestampMixin:
         default=func.now(),
         onupdate=func.now(),
     )
+
 
 class OperatorStatus(str, Enum):
     ONLINE = "online"
@@ -35,7 +40,6 @@ class TicketPriority(str, Enum):
     HIGH = "high"
 
 
-
 class Client(Base, TimestampMixin):
     __tablename__ = "clients"
 
@@ -43,8 +47,7 @@ class Client(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(255), unique=True)
 
-    tickets = relationship("Ticket", back_populates="client")
-
+    tickets = relationship("Ticket", back_populates="client", lazy="selectin")
 
 
 class Operator(Base, TimestampMixin):
@@ -58,7 +61,7 @@ class Operator(Base, TimestampMixin):
         default=OperatorStatus.OFFLINE,
     )
 
-    tickets = relationship("Ticket", back_populates="operator")
+    tickets = relationship("Ticket", back_populates="operator", lazy="selectin")
 
 
 class Ticket(Base, TimestampMixin):
@@ -87,8 +90,14 @@ class Ticket(Base, TimestampMixin):
     messages = relationship(
         "Message",
         back_populates="ticket",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
+
+
+class UserType(str, Enum):
+    CLIENT = "client"
+    OPERATOR = "operator"
 
 
 class Message(Base, TimestampMixin):
@@ -100,7 +109,7 @@ class Message(Base, TimestampMixin):
     ticket_id: Mapped[int] = mapped_column(
         ForeignKey("tickets.id")
     )
+    user_id: Mapped[int] = mapped_column(Integer)
+    user_type: Mapped[UserType] = mapped_column(SQLEnum(UserType))
 
-    sender_type: Mapped[str] = mapped_column(String(20))
-
-    ticket = relationship("Ticket", back_populates="messages")
+    ticket = relationship("Ticket", back_populates="messages", lazy="selectin")

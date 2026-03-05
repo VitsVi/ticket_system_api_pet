@@ -1,6 +1,8 @@
+import json
+
 from aiohttp import web
 from pydantic import ValidationError
-import json
+
 
 async def validate_request(request, schema):
     """Парсиинг и валидация json с pydantic"""
