@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from app.models import Client, Message, Operator, Ticket, TicketStatus, OperatorStatus
 
 
-###################### Базовый репозиторий ########################
+###################### Базовый репозиторий ################
 class BaseRepo:
     def __init__(self, session: AsyncSession, model):
         self.session = session
@@ -69,19 +69,18 @@ class TicketRepo(BaseRepo):
         return result.scalar_one_or_none()
 
 
-######################### ClientRepo #########################
-class ClientRepo(BaseRepo):
+######################### ClientRepo #################
     def __init__(self, session: AsyncSession):
         super().__init__(session, Client)
 
 
-######################### OperatorRepo #########################
+######################### OperatorRepo ################
 class OperatorRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Operator)
 
 
-######################### MessageRepo #########################
+######################### MessageRepo ##################
 class MessageRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Message)
