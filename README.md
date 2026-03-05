@@ -124,7 +124,7 @@ REDIS_PORT=6379
 
 APP_HOST=0.0.0.0
 APP_PORT=8000
-
+```
 ---
 
 2. В корневой папке проекта запустить docker-compose.yml:
