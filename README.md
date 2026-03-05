@@ -80,24 +80,24 @@ https://disk.yandex.ru/d/176zCRHEtTsasg
 
 ### Основные технологии
 - Python 3.11+
-- aiohttp 3.8.4 — веб-фреймворк
-- aiohttp-middlewares 2.3.0 — middleware для aiohttp
-- aiohttp-swagger3 0.7.4 — документация API Swagger
-- SQLAlchemy 2.0.29 — ORM
-- asyncpg 0.29.0 — асинхронный драйвер PostgreSQL
-- greenlet 3.0.3 — поддержка SQLAlchemy
-- alembic 1.13.1 — миграции базы данных
-- psycopg2-binary 2.9.9 — драйвер PostgreSQL
-- redis 5.0.4 — кэширование
-- Pydantic 2.6.4 + pydantic-settings 2.2.1 + pydantic[email] — валидация данных и схемы
-- python-dotenv 1.0.1 — работа с `.env` файлами
-- aiosignal 1.3.1 — сигналы для async библиотек
-- structlog 24.1.0 — структурированное логирование
-- isort — автоматическая сортировка импортов
+- aiohttp 3.8.4 - веб-фреймворк
+- aiohttp-middlewares 2.3.0 - middleware для aiohttp
+- aiohttp-swagger3 0.7.4 - документация API Swagger
+- SQLAlchemy 2.0.29 - ORM
+- asyncpg 0.29.0 - асинхронный драйвер PostgreSQL
+- greenlet 3.0.3 - поддержка SQLAlchemy
+- alembic 1.13.1 - миграции базы данных
+- psycopg2-binary 2.9.9 - драйвер PostgreSQL
+- redis 5.0.4 - кэширование
+- Pydantic 2.6.4 + pydantic-settings 2.2.1 + pydantic[email] - валидация данных и схемы
+- python-dotenv 1.0.1 - работа с `.env` файлами
+- aiosignal 1.3.1 - сигналы для async библиотек
+- structlog 24.1.0 - структурированное логирование
+- isort - автоматическая сортировка импортов
 
 ### Асинхронные возможности
-- AsyncIO — асинхронная обработка
-- Background tasks — фоновая обработка тикетов (например, перевод `waiting` → `closed` через 24 часа)
+- AsyncIO - асинхронная обработка
+- Background tasks - фоновая обработка тикетов (например, перевод `waiting` → `closed` через 24 часа)
 
 ---
 
