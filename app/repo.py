@@ -86,7 +86,7 @@ class MessageRepo(BaseRepo):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Message)
 
-    async def list_by_ticket(self, ticket_id: int, offset=0, limit=50):
+    async def list_by_ticket(self, ticket_id: int, offset=0, limit=10):
         result = await self.session.execute(
             select(Message)
             .where(Message.ticket_id == ticket_id)

@@ -38,13 +38,12 @@ class TicketService:
     async def update_ticket(self, ticket: Ticket, data: dict):
         """Обновление тикета"""
         old_status = ticket.status
+        if data.get("status") and old_status != data["status"]:
+            ticket = await self.update_status(ticket, data['status'])
+
         for field, value in data.items():
             if value is not None:
                 setattr(ticket, field, value)
-
-        if 'status' in data and data['status'] and old_status != data['status']:
-            await update_ticket_count(old_status.value, -1)
-            await update_ticket_count(data['status'].value, 1)
 
         ticket = await self.repo.update(ticket)
         return ticket
@@ -149,11 +148,14 @@ class MessageService:
         self.session = session
         self.repo = MessageRepo(session)
 
-    async def add_message(self, message: Message):
+    async def create_message(self, message: Message):
         return await self.repo.add(message)
 
     async def list_messages(self, ticket_id: int, offset=0, limit=50):
         return await self.repo.list_by_ticket(ticket_id, offset, limit)
+
+    async def get_message(self, message_id: int):
+        return await self.repo.get_by_id(message_id)
 
     async def update_message(self, message: Message, new_text: str):
         message.text = new_text
