@@ -11,29 +11,32 @@ from app.schemas import (ClientCreateSchema, ClientUpdateSchema,
                          ClientReadSchema, OperatorReadSchema)
 from app.service import (ClientService, MessageService, OperatorService,
                          TicketService)
-from app.utils import validate_request
+from app.utils import validate_request, get_pagination_params, handle_errors
+from app.cache import redis
 
 
 routes = web.RouteTableDef()
 
 
 ########################## TICKETS ###############################
+@handle_errors
 @routes.get("/tickets")
 async def list_tickets(request):
     async with async_session() as session:
         service = TicketService(session)
-        tickets = await service.repo.list()
+        tickets = await service.list_tickets(*get_pagination_params(request))
         tickets_data = [TicketReadSchema.from_model(t).model_dump() for t in tickets]
         return web.json_response(tickets_data)
 
 
+@handle_errors
 @routes.get("/tickets/{ticket_id}")
 async def get_ticket(request):
     ticket_id = int(request.match_info["ticket_id"])
     
     async with async_session() as session:
         service = TicketService(session)
-        ticket = await service.repo.get_by_id(ticket_id)
+        ticket = await service.get_ticket(ticket_id)
         if ticket is None:
             return web.json_response({"error": "Ticket not found"}, status=HTTPStatus.NOT_FOUND)
         
@@ -41,6 +44,7 @@ async def get_ticket(request):
         return web.json_response(ticket_data)
 
 
+@handle_errors
 @routes.post("/tickets")
 async def create_ticket(request):
     data = await validate_request(request, TicketCreateSchema)
@@ -68,6 +72,7 @@ async def create_ticket(request):
         })
 
 
+@handle_errors
 @routes.patch("/tickets/{ticket_id}")
 async def patch_ticket(request):
     ticket_id = int(request.match_info["ticket_id"])
@@ -94,6 +99,7 @@ async def patch_ticket(request):
         })
 
 
+@handle_errors
 @routes.delete("/tickets/{ticket_id}")
 async def delete_ticket(request):
     ticket_id = int(request.match_info["ticket_id"])
@@ -109,6 +115,7 @@ async def delete_ticket(request):
 
 
 ######################## CLIENTS ########################
+@handle_errors
 @routes.post("/clients")
 async def create_client(request):
     data = await validate_request(request, ClientCreateSchema)
@@ -116,27 +123,29 @@ async def create_client(request):
     async with async_session() as session:
         service = ClientService(session)
         client = Client(name=data.name, email=data.email)
-        client = await service.repo.add(client)
+        client = await service.create_client(client)
         return web.json_response({"id": client.id, "name": client.name, "email": client.email})
 
 
+@handle_errors
 @routes.get("/clients")
 async def list_clients(request):
     async with async_session() as session:
         service = ClientService(session)
-        clients = await service.repo.list()
+        clients = await service.list_clients(*get_pagination_params(request))
         clients_data = [ClientReadSchema.from_model(c).model_dump() for c in clients]
         
         return web.json_response(clients_data)
 
 
+@handle_errors
 @routes.get("/clients/{client_id}")
 async def get_client(request):
     client_id = int(request.match_info["client_id"])
     
     async with async_session() as session:
         service = ClientService(session)
-        client = await service.repo.get_by_id(client_id)
+        client = await service.get_client(client_id)
         if client is None:
             return web.json_response({"error": "Client not found"}, status=HTTPStatus.NOT_FOUND)
         
@@ -144,6 +153,7 @@ async def get_client(request):
         return web.json_response(client_data)
 
 
+@handle_errors
 @routes.patch("/clients/{client_id}")
 async def patch_client(request):
     client_id = int(request.match_info["client_id"])
@@ -165,6 +175,7 @@ async def patch_client(request):
         })
 
 
+@handle_errors
 @routes.delete("/clients/{client_id}")
 async def delete_client(request):
     client_id = int(request.match_info["client_id"])
@@ -180,23 +191,25 @@ async def delete_client(request):
 
 
 ######################### OPERATORS ##########################
+@handle_errors
 @routes.get("/operators")
 async def list_clients(request):
     async with async_session() as session:
         service = OperatorService(session)
-        operators = await service.repo.list()
+        operators = await service.list_operators(*get_pagination_params(request))
         operators_data = [OperatorReadSchema.from_model(o).model_dump() for o in operators]
         
         return web.json_response(operators_data)
 
 
+@handle_errors
 @routes.get("/operators/{operator_id}")
 async def get_operator(request):
     operator_id = int(request.match_info["operator_id"])
     
     async with async_session() as session:
         service = OperatorService(session)
-        operator = await service.repo.get_by_id(operator_id)
+        operator = await service.get_operator(operator_id)
         if operator is None:
             return web.json_response({"error": "Operator not found"}, status=HTTPStatus.NOT_FOUND)
         
@@ -204,6 +217,7 @@ async def get_operator(request):
         return web.json_response(operator_data)
 
 
+@handle_errors
 @routes.post("/operators")
 async def create_operator(request):
     data = await validate_request(request, OperatorCreateSchema)
@@ -211,10 +225,11 @@ async def create_operator(request):
     async with async_session() as session:
         service = OperatorService(session)
         operator = Operator(name=data.name)
-        operator = await service.repo.add(operator)
+        operator = await service.create_operator(operator)
         return web.json_response({"id": operator.id, "name": operator.name, "status": operator.status.value})
 
 
+@handle_errors
 @routes.patch("/operators/{operator_id}")
 async def patch_operator(request):
     operator_id = int(request.match_info["operator_id"])
@@ -236,6 +251,7 @@ async def patch_operator(request):
         })
 
 
+@handle_errors
 @routes.delete("/operators/{operator_id}")
 async def delete_operator(request):
     operator_id = int(request.match_info["operator_id"])
@@ -250,7 +266,8 @@ async def delete_operator(request):
         return web.json_response({"status": "deleted"})
     
 
-################### MESSAGES ######################3
+################### MESSAGES ######################
+@handle_errors
 @routes.post("/messages")
 async def create_message(request):
     data = await validate_request(request, MessageCreateSchema)
@@ -258,10 +275,11 @@ async def create_message(request):
     async with async_session() as session:
         service = MessageService(session)
         message = Message(content=data.content, ticket_id=data.ticket_id, user_id=data.user_id, user_type=data.user_type)
-        message = await service.repo.add(message)
+        message = await service.create_message(message)
         return web.json_response({"id": message.id, "ticket_id": message.ticket_id})
     
 
+@handle_errors
 @routes.patch("/messages/{message_id}")
 async def patch_message(request):
     message_id = int(request.match_info["message_id"])
@@ -269,7 +287,7 @@ async def patch_message(request):
 
     async with async_session() as session:
         service = MessageService(session)
-        message = await service.repo.get_by_id(message_id)
+        message = await service.get_message(message_id)
         if not message:
             raise web.HTTPNotFound(text="Message not found")
 
@@ -285,15 +303,24 @@ async def patch_message(request):
         })
 
 
+@handle_errors
 @routes.delete("/messages/{message_id}")
 async def delete_message(request):
     message_id = int(request.match_info["message_id"])
 
     async with async_session() as session:
         service = MessageService(session)
-        message = await service.repo.get_by_id(message_id)
+        message = await service.get_message(message_id)
         if not message:
             raise web.HTTPNotFound(text="Message not found")
 
         await service.delete_message(message)
         return web.json_response({"status": "deleted"})
+    
+
+#################### Redis ###################
+@handle_errors
+@routes.get("/ticket_counts")
+async def get_ticket_counts(request):
+    keys = await redis.hgetall("ticket_counts")
+    return web.json_response(keys)
